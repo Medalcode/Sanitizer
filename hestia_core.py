@@ -59,6 +59,15 @@ def inicializar_hestia():
             )
         ''')
 
+        # 4. Tabla de Configuración Global (El Cerebro)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS configuracion (
+                clave TEXT PRIMARY KEY, -- Ej: 'cointiply_coords', 'honeygain_enabled'
+                valor TEXT NOT NULL,    -- JSON string o valor simple
+                ultima_modif TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         conn.commit()
         print(f"🔥 Hestia inicializado correctamente en: {os.path.abspath(DB_NAME)}")
         print("   - Tablas verificadas: 'ofertas', 'tesoro_hermes', 'bitacora_sistema'.")

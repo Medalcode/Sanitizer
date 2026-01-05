@@ -60,7 +60,41 @@ def api_report():
         print(f"❌ API Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/api/config/<clave>', methods=['GET'])
+def get_config(clave):
+    try:
+        conn = get_db_connection()
+        # Asegurar tabla (quick fix)
+        conn.execute('CREATE TABLE IF NOT EXISTS configuracion (clave TEXT PRIMARY KEY, valor TEXT, ultima_modif TIMESTAMP)')
+        row = conn.execute('SELECT valor FROM configuracion WHERE clave = ?', (clave,)).fetchone()
+        conn.close()
+        
+        if row:
+            import json
+            return jsonify({"status": "success", "valor": json.loads(row[0])})
+        return jsonify({"status": "error", "message": "Clave no encontrada"}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == '__main__':
+    # Init Defaults
+    try:
+        import json
+        c = sqlite3.connect(HESTIA_DB)
+        c.execute('CREATE TABLE IF NOT EXISTS configuracion (clave TEXT PRIMARY KEY, valor TEXT, ultima_modif TIMESTAMP)')
+        if not c.execute('SELECT 1 FROM configuracion WHERE clave = "cointiply_coords"').fetchone():
+            default_config = json.dumps({
+                "step_1_select": {"x": 659, "y": 1520},
+                "step_2_roll": {"x": 353, "y": 1148},
+                "step_3_close": {"x": 600, "y": 1490}
+            })
+            c.execute('INSERT INTO configuracion (clave, valor) VALUES (?, ?)', ("cointiply_coords", default_config))
+            c.commit()
+            print("⚙️ Configuración Cointiply inyectada.")
+        c.close()
+    except Exception as e:
+        print(f"Error init config: {e}")
+
     # Escuchar en todas las interfaces (0.0.0.0) para ser accesible desde la red local
     # Puerto 5000 por defecto
     print("🔥 Lanzando dashboard HESTIA en el puerto 5000...")
