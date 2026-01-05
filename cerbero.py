@@ -1,13 +1,8 @@
-import sqlite3
 import time
-import psutil
 import subprocess
-import sys
 import os
-from datetime import datetime
-
-# Configuración
-HESTIA_DB = 'hestia.db'
+import sys
+from panteon import Panteon
 
 # Lista de Scripts Python a vigilar
 PYTHON_WATCH_LIST = {
@@ -16,115 +11,78 @@ PYTHON_WATCH_LIST = {
     'hestia_dashboard.py': 'python hestia_dashboard.py' 
 }
 
-# Lista de Apps Android a vigilar (Paquete, Nombre)
-ANDROID_WATCH_LIST = [
-    ("com.honeygain.make.money", "Honeygain"),
-    ("com.android.chrome", "Chrome") # Importante para Hermes
-]
+# Apps Android (Solo notificaremos si faltan)
+ANDROID_APPS = {
+    "com.honeygain.make.money": "Honeygain"
+}
 
 class Cerbero:
     def __init__(self):
-        self.nombre = "Cerbero v2.1 (Local)"
+        self.bot = Panteon("Cerbero")
         self.ciclos = 0
-        self.conectar_adb_local()
 
-    def conectar_adb_local(self):
-        os.system("adb connect 127.0.0.1:5555")
-
-    def conectar_hestia(self):
-        return sqlite3.connect(HESTIA_DB)
-
-    def log_sistema(self, mensaje, nivel="INFO"):
+    def verificar_procesos(self):
+        """Revisa si los scripts python están vivos. Si no, los revive."""
         try:
-            with self.conectar_hestia() as conn:
-                conn.execute("INSERT INTO bitacora_sistema (origen, mensaje, nivel) VALUES (?, ?, ?)",
-                             ("Cerbero", mensaje, nivel))
-                if nivel == "WARN" or nivel == "ERROR":
-                    print(f"🐕⚠️ {self.nombre}: {mensaje}")
-        except Exception as e:
-            print(f"Error crítico en log de Cerbero: {e}")
-
-    # --- PYTHON PROCESS LOGIC ---
-    def verificar_procesos_python(self):
-        """Revisa si los bots Python están corriendo."""
-        procesos_activos = []
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-            try:
-                cmdline = proc.info['cmdline']
-                if cmdline:
-                    procesos_activos.append(" ".join(cmdline))
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
-
-        for script_name, launch_cmd in PYTHON_WATCH_LIST.items():
-            encontrado = False
-            for cmd in procesos_activos:
-                if script_name in cmd:
-                    encontrado = True
-                    break
+            # Obtener lista de procesos una sola vez
+            ps_output = subprocess.check_output(['ps', '-ef']).decode()
             
-            if not encontrado:
-                self.log_sistema(f"Script {script_name} caído. Reviviendo...", "WARN")
-                self.revivir_script(script_name, launch_cmd)
-
-    def revivir_script(self, script_name, launch_cmd):
-        try:
-            subprocess.Popen(launch_cmd.split(), 
-                           stdout=subprocess.DEVNULL, 
-                           stderr=subprocess.DEVNULL,
-                           start_new_session=True)
-            self.log_sistema(f"♻️ {script_name} reiniciado.", "SUCCESS")
+            for script, launch_cmd in PYTHON_WATCH_LIST.items():
+                if script not in ps_output:
+                    self.bot.log(f"⚠️ {script} caído. Reviviendo...", "WARN")
+                    self.revivir_proceso(script, launch_cmd)
         except Exception as e:
-            self.log_sistema(f"❌ Fallo al revivir {script_name}: {e}", "ERROR")
+            self.bot.log(f"❌ Error al escanear procesos: {e}", "ERROR")
 
-    # --- ANDROID APP LOGIC ---
-    def is_app_running(self, package_name):
-        # 'pidof' returns the process ID if running
-        result = os.system(f"adb shell pidof {package_name} > /dev/null 2>&1")
-        return result == 0
-
-    def launch_app(self, package_name):
-        os.system(f"adb shell monkey -p {package_name} 1 > /dev/null 2>&1")
-
-    def verificar_apps_android(self):
-        """Revisa si las Apps Android clave están corriendo."""
-        for package, friendly_name in ANDROID_WATCH_LIST:
-            if not self.is_app_running(package):
-                self.log_sistema(f"App Android {friendly_name} cerrada. Relanzando...", "WARN")
-                self.launch_app(package)
-                time.sleep(5) # Dar tiempo a que abra
-                if self.is_app_running(package):
-                    self.log_sistema(f"♻️ App {friendly_name} recuperada.", "SUCCESS")
-                else:
-                    self.log_sistema(f"❌ Imposible abrir {friendly_name}.", "ERROR")
-
-    # --- MAIN LOOP ---
-    def monitorear_salud(self):
+    def revivir_proceso(self, script_name, launch_cmd):
         try:
-            # En Android /proc/stat suele estar bloqueado, así que evitamos leer CPU
-            ram = psutil.virtual_memory().percent
-            if self.ciclos % 12 == 0: 
-                print(f"🐕 Cerbero Ping: RAM {ram}% | (CPU oculta por Android)")
+            # Lanzamos en background
+            subprocess.Popen(launch_cmd.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.bot.log(f"♻️ {script_name} reiniciado.", "INFO")
+            self.bot.notificar(f"🚨 Alerta: {script_name} murió, pero ya lo reinicié.")
         except Exception as e:
-            # Si falla, no crasheamos todo el bot
-            pass
+            self.bot.log(f"❌ Fallo al revivir {script_name}: {e}", "ERROR")
 
-    def iniciar_guardia(self):
-        self.log_sistema("Iniciando vigilancia Híbrida (Python + Android).")
-        print(f"🛡️  {self.nombre} está protegiendo Hestia.")
+    def verificar_android_apps(self):
+        """Verifica apps nativas via ADB (Solo funciona si ADB corre local)."""
+        if self.ciclos % 12 != 0: return # Solo cada minuto
         
         try:
-            while True:
-                self.verificar_procesos_python()
-                # Solo verificar Apps Android si estamos en un entorno donde ADB funcione
-                # (Para pruebas locales podría fallar o spammear logs, pero lo dejamos activo)
-                self.verificar_apps_android() 
-                
-                self.monitorear_salud()
-                self.ciclos += 1
-                time.sleep(5) 
-        except KeyboardInterrupt:
-            print(f"\n🛡️  Cerbero termina su turno.")
+            # Check rápido con pidof
+            for pkg, name in ANDROID_APPS.items():
+                res = subprocess.run(['pidof', pkg], capture_output=True)
+                if res.returncode != 0:
+                    self.bot.log(f"⚠️ App Android caída: {name}", "WARN")
+                    # Intentar revivir via Monkey
+                    subprocess.run(f"adb shell monkey -p {pkg} -c android.intent.category.LAUNCHER 1".split(), 
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except:
+            pass # ADB puede no estar listo
+
+    def monitorear_salud(self):
+        """Mira RAM y Batería (si posible)."""
+        if self.ciclos % 60 == 0: # Cada 5 min
+            try:
+                # Intento leer batería via termux-battery-status (si instalado) o dumpsys
+                # Por ahora simple RAM log
+                self.bot.log("🐕 Cerbero Ping: Sistema Nominal.")
+            except:
+                pass
+
+    def iniciar_guardia(self):
+        self.bot.log("🛡️ Cerbero v3.0 (Panteon) iniciando guardia...")
+        self.bot.notificar("🐕 Hestia Iniciado y Protegido.")
+        
+        # Auto-conectar ADB local por si acaso
+        os.system("adb connect 127.0.0.1:5555 > /dev/null 2>&1")
+
+        while True:
+            self.verificar_procesos()
+            # self.verificar_android_apps() # Desacoplado por ahora para evitar spam ADB
+            self.monitorear_salud()
+            
+            time.sleep(5)
+            self.ciclos += 1
 
 if __name__ == "__main__":
     guardian = Cerbero()

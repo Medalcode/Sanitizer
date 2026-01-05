@@ -60,6 +60,31 @@ def api_report():
         print(f"❌ API Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/api/control/<accion>/<objetivo>', methods=['POST'])
+def sistema_control(accion, objetivo):
+    """
+    Permite reiniciar bots matándolos. Cerbero se encargará de revivirlos.
+    Acciones: 'restart'
+    Objetivos: 'hermes', 'panoptes', 'all'
+    """
+    try:
+        if accion == 'restart':
+            if objetivo == 'all':
+                # Reinicio nuclear (menos el dashboard para no cortar la respuesta)
+                os.system("pkill -f panoptes.py")
+                os.system("pkill -f hermes.py")
+                return jsonify({"status": "success", "message": "Sistemas reiniciándose..."})
+            
+            elif objetivo in ['hermes', 'panoptes']:
+                # Matar proceso específico
+                cmd = f"pkill -f {objetivo}.py"
+                os.system(cmd)
+                return jsonify({"status": "success", "message": f"{objetivo} reiniciado."})
+                
+        return jsonify({"status": "error", "message": "Comando no reconocido"}), 400
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route('/api/config/<clave>', methods=['GET'])
 def get_config(clave):
     try:
@@ -83,14 +108,20 @@ if __name__ == '__main__':
         c = sqlite3.connect(HESTIA_DB)
         c.execute('CREATE TABLE IF NOT EXISTS configuracion (clave TEXT PRIMARY KEY, valor TEXT, ultima_modif TIMESTAMP)')
         if not c.execute('SELECT 1 FROM configuracion WHERE clave = "cointiply_coords"').fetchone():
+            # Config Cointiply
             default_config = json.dumps({
                 "step_1_select": {"x": 659, "y": 1520},
                 "step_2_roll": {"x": 353, "y": 1148},
                 "step_3_close": {"x": 600, "y": 1490}
             })
             c.execute('INSERT INTO configuracion (clave, valor) VALUES (?, ?)', ("cointiply_coords", default_config))
+            
+            # Config Panoptes (Objetivos de búsqueda)
+            default_search = json.dumps(["PlayStation 5", "iPhone 15", "RTX 4060"])
+            c.execute('INSERT INTO configuracion (clave, valor) VALUES (?, ?)', ("panoptes_targets", default_search))
+            
             c.commit()
-            print("⚙️ Configuración Cointiply inyectada.")
+            print("⚙️ Configuraciones iniciales inyectadas.")
         c.close()
     except Exception as e:
         print(f"Error init config: {e}")

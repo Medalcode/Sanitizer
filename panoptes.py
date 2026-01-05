@@ -1,78 +1,97 @@
-import sqlite3
 import time
+import requests
 import random
-from datetime import datetime
-
-# Configuración
-HESTIA_DB = 'hestia.db'
+from bs4 import BeautifulSoup
+from panteon import Panteon
 
 class Panoptes:
     def __init__(self):
-        self.nombre = "Panoptes v1.0"
-        self.objetivos = [
-            "Laptop Gamer", "iPhone 15", "Monitor 144hz", 
-            "Teclado Mecánico", "Mouse Logitech"
-        ]
-        self.tiendas = ["MercadoLibre", "Amazon", "AliExpress"]
+        self.bot = Panteon("Panoptes Real")
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
 
-    def conectar_hestia(self):
-        """Abre conexión con la base de datos central."""
-        return sqlite3.connect(HESTIA_DB)
-
-    def log_sistema(self, mensaje, nivel="INFO"):
-        """Registra actividad en la bitácora de Hestia."""
+    def escanear_mercadolibre(self, producto):
+        """Busca un producto en MercadoLibre y extrae el primer resultado orgánico."""
+        self.bot.log(f"🔎 Buscando '{producto}' en MercadoLibre...")
+        
+        url_busqueda = f"https://listado.mercadolibre.cl/{producto.replace(' ', '-')}_NoIndex_True"
         try:
-            with self.conectar_hestia() as conn:
-                conn.execute("INSERT INTO bitacora_sistema (origen, mensaje, nivel) VALUES (?, ?, ?)",
-                             ("Panoptes", mensaje, nivel))
+            resp = requests.get(url_busqueda, headers=self.headers, timeout=10)
+            if resp.status_code != 200:
+                self.bot.log(f"⚠️ Error {resp.status_code} al acceder a {url_busqueda}", "WARN")
+                return
+
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            
+            # Selectores típicos de ML (pueden cambiar, pero estos son comunes)
+            items = soup.find_all('li', class_='ui-search-layout__item')
+            if not items:
+                # Intentar layout de grilla
+                items = soup.find_all('div', class_='ui-search-result__wrapper')
+
+            if items:
+                # Tomamos el primero para dar el dato "mejor posicionado"
+                item = items[0]
+                
+                # Extraer Título (Intentar varios selectores)
+                titulo_tag = item.find('h2', class_='ui-search-item__title')
+                titulo = titulo_tag.text.strip() if titulo_tag else "Producto desconocido"
+                
+                # Extraer Precio
+                precio_tag = item.find('span', class_='andes-money-amount__fraction')
+                precio_texto = precio_tag.text.replace('.', '') if precio_tag else "0"
+                try:
+                    precio = int(precio_texto)
+                except:
+                    precio = 0
+
+                # Extraer Link
+                link_tag = item.find('a', class_='ui-search-link')
+                link = link_tag['href'] if link_tag else "#"
+
+                # Guardar en Hestia
+                self.guardar_hallazgo(titulo, precio, "MercadoLibre", link)
+            else:
+                self.bot.log(f"⚠️ No encontré resultados para '{producto}'", "WARN")
+
         except Exception as e:
-            print(f"Error logueando: {e}")
+            self.bot.log(f"❌ Error scraping {producto}: {e}", "ERROR")
 
     def guardar_hallazgo(self, producto, precio, tienda, url):
-        """Guarda una oferta detectada en la base de datos."""
-        try:
-            with self.conectar_hestia() as conn:
+        # Usamos conexión directa del SDK si es local
+        if self.bot.modo == "LOCAL":
+            with self.bot._conectar_db() as conn:
                 conn.execute('''
                     INSERT INTO ofertas (producto, precio, tienda, url, fecha_captura)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (producto, precio, tienda, url, datetime.now()))
-                print(f"✅ {self.nombre}: Guardado {producto} (${precio}) de {tienda}")
-        except Exception as e:
-            print(f"❌ Error guardando datos: {e}")
-            self.log_sistema(f"Fallo al guardar oferta: {e}", "ERROR")
-
-    def escanear_web_simulado(self):
-        """
-        SIMULACIÓN DE SCRAPING.
-        En producción, aquí iría el código con 'requests' y 'BeautifulSoup'.
-        """
-        print(f"\n🔍 {self.nombre} escaneando el mercado...")
-        time.sleep(1.5) # Simular tiempo de petición HTTP
-        
-        # Generar oferta aleatoria
-        producto = random.choice(self.objetivos)
-        precio = round(random.uniform(100, 1500), 2)
-        tienda = random.choice(self.tiendas)
-        url = f"https://{tienda.lower()}.com/oferta/{random.randint(1000,9999)}"
-        
-        # Simular que encontramos algo interesante (filtro de precio)
-        if precio < 1200: 
-            self.guardar_hallazgo(producto, precio, tienda, url)
+                    VALUES (?, ?, ?, ?, datetime("now"))
+                ''', (producto, precio, tienda, url))
+                self.bot.log(f"✅ Hallazgo: {producto} a ${precio}")
         else:
-            print(f"🔹 {self.nombre}: {producto} encontrado pero muy caro (${precio}). Ignorando.")
+            # TODO: Endpoint /api/oferta futura
+            self.bot.log(f"📡 (Simulado Remoto) {producto}: ${precio}")
 
-    def iniciar_vigilancia(self, intervalo=10):
-        self.log_sistema("Iniciando ciclo de vigilancia")
-        print(f"🚀 {self.nombre} Desplegado. Presiona CTRL+C para detener.")
-        try:
-            while True:
-                self.escanear_web_simulado()
-                time.sleep(intervalo)
-        except KeyboardInterrupt:
-            self.log_sistema("Apagado manual", "WARN")
-            print("\n🛑 Vigilancia detenida.")
+    def patrullar(self):
+        """Ciclo principal de búsqueda."""
+        self.bot.log("👁️ Panoptes v2 (Real) iniciado. Cargando objetivos...")
+        
+        while True:
+            # 1. Leer Configuración Dinámica desde Hestia
+            objetivos = self.bot.get_config("panoptes_targets")
+            if not objetivos:
+                objetivos = ["Bitcoin", "Laptop"] # Fallback
+            
+            # 2. Escanear cada objetivo
+            for obj in objetivos:
+                self.escanear_mercadolibre(obj)
+                # Pausa humana para no ser baneado
+                time.sleep(random.randint(5, 15)) 
+            
+            # 3. Descansar
+            descanso = 1200 # 20 minutos
+            self.bot.log(f"💤 Ronda terminada. Durmiendo {descanso/60:.0f} min.")
+            time.sleep(descanso)
 
 if __name__ == "__main__":
-    bot = Panoptes()
-    # Ejecutar cada 5 segundos para probar rápido el Dashboard
-    bot.iniciar_vigilancia(intervalo=5)
+    ojo = Panoptes()
+    ojo.patrullar()

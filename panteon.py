@@ -78,3 +78,20 @@ class Panteon:
             except Exception as e:
                 print(f"❌ Error API Config: {e}")
         return None
+
+    def notificar(self, mensaje):
+        """Envía una alerta a Telegram si está configurado."""
+        try:
+            tg_conf = self.get_config("telegram_config")
+            if not tg_conf:
+                return # No configurado, silencio.
+
+            token = tg_conf.get("token")
+            chat_id = tg_conf.get("chat_id")
+            
+            if token and chat_id:
+                url = f"https://api.telegram.org/bot{token}/sendMessage"
+                payload = {"chat_id": chat_id, "text": f"🔥 HESTIA > {self.nombre}:\n{mensaje}"}
+                requests.post(url, json=payload, timeout=5)
+        except Exception as e:
+            print(f"❌ Error Telegram: {e}")
