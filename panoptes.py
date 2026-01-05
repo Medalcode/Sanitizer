@@ -4,7 +4,7 @@ import random
 from datetime import datetime
 
 # Configuración
-OLIMPO_DB = 'olimpo.db'
+HESTIA_DB = 'hestia.db'
 
 class Panoptes:
     def __init__(self):
@@ -15,14 +15,14 @@ class Panoptes:
         ]
         self.tiendas = ["MercadoLibre", "Amazon", "AliExpress"]
 
-    def conectar_olimpo(self):
+    def conectar_hestia(self):
         """Abre conexión con la base de datos central."""
-        return sqlite3.connect(OLIMPO_DB)
+        return sqlite3.connect(HESTIA_DB)
 
     def log_sistema(self, mensaje, nivel="INFO"):
-        """Registra actividad en la bitácora del Olimpo."""
+        """Registra actividad en la bitácora de Hestia."""
         try:
-            with self.conectar_olimpo() as conn:
+            with self.conectar_hestia() as conn:
                 conn.execute("INSERT INTO bitacora_sistema (origen, mensaje, nivel) VALUES (?, ?, ?)",
                              ("Panoptes", mensaje, nivel))
         except Exception as e:
@@ -31,7 +31,7 @@ class Panoptes:
     def guardar_hallazgo(self, producto, precio, tienda, url):
         """Guarda una oferta detectada en la base de datos."""
         try:
-            with self.conectar_olimpo() as conn:
+            with self.conectar_hestia() as conn:
                 conn.execute('''
                     INSERT INTO ofertas (producto, precio, tienda, url, fecha_captura)
                     VALUES (?, ?, ?, ?, ?)

@@ -3,7 +3,7 @@ import sqlite3
 import os
 
 app = Flask(__name__)
-DB_NAME = 'olimpo.db'
+DB_NAME = 'hestia.db'
 
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME)
@@ -37,10 +37,10 @@ def dashboard():
         
         return render_template('index.html', ofertas=ofertas, cobros=cobros, logs=logs, total_ofertas=total_ofertas, total_coins=total_coins)
     except Exception as e:
-        return f"<h1>⚠️ Error Crítico en el Olimpo</h1><p>{str(e)}</p>"
+        return f"<h1>⚠️ Error Crítico en Hestia</h1><p>{str(e)}</p>"
 
 if __name__ == '__main__':
     # Escuchar en todas las interfaces (0.0.0.0) para ser accesible desde la red local
     # Puerto 5000 por defecto
-    print("⚡ Lanzando servidor web Olimpo en el puerto 5000...")
+    print("🔥 Lanzando dashboard HESTIA en el puerto 5000...")
     app.run(host='0.0.0.0', port=5000, debug=True)

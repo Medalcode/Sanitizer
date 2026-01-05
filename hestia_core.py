@@ -2,24 +2,24 @@ import sqlite3
 import os
 from datetime import datetime
 
-# Configuración del Olimpo
-DB_NAME = 'olimpo.db'
+# Configuración de Hestia
+DB_NAME = 'hestia.db'
 
-def conectar_olimpo():
-    """Establece la conexión con la base de datos del Olimpo."""
+def conectar_hestia():
+    """Establece la conexión con la base de datos de Hestia."""
     try:
         conn = sqlite3.connect(DB_NAME)
         return conn
     except sqlite3.Error as e:
-        print(f"⚡ Error conectando al Olimpo: {e}")
+        print(f"🔥 Error conectando a Hestia: {e}")
         return None
 
-def inicializar_olimpo():
+def inicializar_hestia():
     """
     Génesis: Crea las tablas necesarias si no existen.
-    Esta función se debe ejecutar al inicio para asegurar que el servidor está listo.
+    Esta función se debe ejecutar al inicio para asegurar que el servidor Hestia está listo.
     """
-    conn = conectar_olimpo()
+    conn = conectar_hestia()
     if conn:
         cursor = conn.cursor()
         
@@ -60,15 +60,15 @@ def inicializar_olimpo():
         ''')
 
         conn.commit()
-        print(f"🏛️  Olimpo inicializado correctamente en: {os.path.abspath(DB_NAME)}")
+        print(f"🔥 Hestia inicializado correctamente en: {os.path.abspath(DB_NAME)}")
         print("   - Tablas verificadas: 'ofertas', 'tesoro_hermes', 'bitacora_sistema'.")
         conn.close()
 
 def registrar_oferta_panoptes(producto, precio, tienda, url=""):
     """
-    Función para que Panoptes registre un hallazgo en el Olimpo.
+    Función para que Panoptes registre un hallazgo en Hestia.
     """
-    conn = conectar_olimpo()
+    conn = conectar_hestia()
     if conn:
         cursor = conn.cursor()
         cursor.execute('''
@@ -80,8 +80,8 @@ def registrar_oferta_panoptes(producto, precio, tienda, url=""):
         conn.close()
 
 def reporte_estado():
-    """Muestra un resumen rápido del estado del Olimpo para el usuario (Dashboard en consola)."""
-    conn = conectar_olimpo()
+    """Muestra un resumen rápido del estado de Hestia para el usuario (Dashboard en consola)."""
+    conn = conectar_hestia()
     if conn:
         cursor = conn.cursor()
         
@@ -93,7 +93,7 @@ def reporte_estado():
         cursor.execute("SELECT COUNT(*) FROM tesoro_hermes")
         total_cobros = cursor.fetchone()[0]
         
-        print("\n📊 --- ESTADO DEL OLIMPO ---")
+        print("\n🔥 --- ESTADO DE HESTIA ---")
         print(f"   Ofertas archivadas por Panoptes: {total_ofertas}")
         print(f"   Cobros realizados por Hermes:    {total_cobros}")
         print("----------------------------\n")
@@ -101,7 +101,7 @@ def reporte_estado():
 
 if __name__ == "__main__":
     # Al ejecutar este script directamente, se inicializa el sistema y se hace una prueba.
-    inicializar_olimpo()
+    inicializar_hestia()
     
     # --- SIMULACIÓN DE PRUEBA ---
     # Imaginemos que Panoptes acaba de encontrar algo:
