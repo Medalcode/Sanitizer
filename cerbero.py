@@ -40,6 +40,8 @@ class Cerbero:
             subprocess.Popen(launch_cmd.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self.bot.log(f"♻️ {script_name} reiniciado.", "INFO")
             self.bot.notificar(f"🚨 Alerta: {script_name} murió, pero ya lo reinicié.")
+            # Evitar bucle infinito de reinicios rápidos
+            time.sleep(10)
         except Exception as e:
             self.bot.log(f"❌ Fallo al revivir {script_name}: {e}", "ERROR")
 
