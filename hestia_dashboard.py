@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
 import sqlite3
 import os
 
@@ -38,6 +38,27 @@ def dashboard():
         return render_template('index.html', ofertas=ofertas, cobros=cobros, logs=logs, total_ofertas=total_ofertas, total_coins=total_coins)
     except Exception as e:
         return f"<h1>⚠️ Error Crítico en Hestia</h1><p>{str(e)}</p>"
+
+@app.route('/api/report', methods=['POST'])
+def api_report():
+    """Endpoint para recibir ganancias desde bots externos (Hefesto PC)."""
+    try:
+        data = request.json
+        origen = data.get('origen', 'Desconocido')
+        cantidad = data.get('cantidad', 0)
+        unidad = data.get('unidad', 'N/A')
+        
+        conn = get_db_connection()
+        conn.execute('INSERT INTO tesoro_hermes (origen, cantidad, unidad, fecha_cobro) VALUES (?, ?, ?, datetime("now"))',
+                     (origen, cantidad, unidad))
+        conn.commit()
+        conn.close()
+        
+        print(f"📡 API: Recibido reporte de {origen}: {cantidad} {unidad}")
+        return jsonify({"status": "success", "message": "Guardado en Hestia"}), 200
+    except Exception as e:
+        print(f"❌ API Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     # Escuchar en todas las interfaces (0.0.0.0) para ser accesible desde la red local
