@@ -239,7 +239,7 @@
                             {% for oferta in ofertas %}
                             <tr>
                                 <td style="font-weight: 500;">{{ oferta[1] }}</td>
-                                <td class="price-tag">${{ int(oferta[2]) }}</td>
+                                <td class="price-tag">${{ oferta[2] | int }}</td>
                                 <td><span class="source-tag">{{ oferta[3] }}</span></td>
                             </tr>
                             {% else %}

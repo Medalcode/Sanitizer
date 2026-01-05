@@ -12,8 +12,15 @@ CONFIG_FILE = "cointiply_config.json"
 
 class Hermes:
     def __init__(self):
-        self.nombre = "Hermes v2.0 (ADB)"
+        self.nombre = "Hermes v2.1 (Self-Hosted)"
         self.ganancias_sesion = 0
+        self.conectar_adb_local()
+
+    def conectar_adb_local(self):
+        """Intenta conectar ADB a localhost para que Termux se controle a sí mismo."""
+        print("🔌 Hermes: Intentando auto-conexión ADB local...")
+        os.system("adb connect 127.0.0.1:5555")
+        time.sleep(2) # Dar tiempo para la conexión
 
     def conectar_hestia(self):
         """Abre conexión con la base de datos central."""

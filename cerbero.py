@@ -11,9 +11,9 @@ HESTIA_DB = 'hestia.db'
 
 # Lista de Scripts Python a vigilar
 PYTHON_WATCH_LIST = {
-    'panoptes.py': 'python3 panoptes.py',
-    'hermes.py': 'python3 hermes.py',
-    'hestia_dashboard.py': './venv/bin/python hestia_dashboard.py' 
+    'panoptes.py': 'python panoptes.py',
+    'hermes.py': 'python hermes.py',
+    'hestia_dashboard.py': 'python hestia_dashboard.py' 
 }
 
 # Lista de Apps Android a vigilar (Paquete, Nombre)
@@ -24,8 +24,12 @@ ANDROID_WATCH_LIST = [
 
 class Cerbero:
     def __init__(self):
-        self.nombre = "Cerbero v2.0 (Híbrido)"
+        self.nombre = "Cerbero v2.1 (Local)"
         self.ciclos = 0
+        self.conectar_adb_local()
+
+    def conectar_adb_local(self):
+        os.system("adb connect 127.0.0.1:5555")
 
     def conectar_hestia(self):
         return sqlite3.connect(HESTIA_DB)
@@ -96,12 +100,14 @@ class Cerbero:
 
     # --- MAIN LOOP ---
     def monitorear_salud(self):
-        cpu = psutil.cpu_percent(interval=1)
-        ram = psutil.virtual_memory().percent
-        if cpu > 85:
-            self.log_sistema(f"Sobrecarga CPU: {cpu}%", "WARN")
-        if self.ciclos % 12 == 0: # Cada minuto
-            print(f"🐕 Cerbero Ping: Sistema Nominal (CPU {cpu}% | RAM {ram}%)")
+        try:
+            # En Android /proc/stat suele estar bloqueado, así que evitamos leer CPU
+            ram = psutil.virtual_memory().percent
+            if self.ciclos % 12 == 0: 
+                print(f"🐕 Cerbero Ping: RAM {ram}% | (CPU oculta por Android)")
+        except Exception as e:
+            # Si falla, no crasheamos todo el bot
+            pass
 
     def iniciar_guardia(self):
         self.log_sistema("Iniciando vigilancia Híbrida (Python + Android).")
