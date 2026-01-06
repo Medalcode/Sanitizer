@@ -30,12 +30,26 @@ def dashboard():
         res = cursor.fetchone()[0]
         total_coins = int(res) if res else 0
         
+        # Obtener Resumen por Bot (Quién trabaja más)
+        resumen_bots = conn.execute('''
+            SELECT origen, SUM(cantidad) as total, unidad 
+            FROM tesoro_hermes 
+            GROUP BY origen, unidad
+            ORDER BY total DESC
+        ''').fetchall()
+
         # Obtener Logs del Sistema
-        logs = conn.execute('SELECT * FROM bitacora_sistema ORDER BY fecha_evento DESC LIMIT 5').fetchall()
+        logs = conn.execute('SELECT * FROM bitacora_sistema ORDER BY fecha_evento DESC LIMIT 10').fetchall() # Más logs
         
         conn.close()
         
-        return render_template('index.html', ofertas=ofertas, cobros=cobros, logs=logs, total_ofertas=total_ofertas, total_coins=total_coins)
+        return render_template('index.html', 
+                             ofertas=ofertas, 
+                             cobros=cobros, 
+                             logs=logs, 
+                             total_ofertas=total_ofertas, 
+                             total_coins=total_coins,
+                             resumen_bots=resumen_bots) # Nueva variable
     except Exception as e:
         return f"<h1>⚠️ Error Crítico en Hestia</h1><p>{str(e)}</p>"
 

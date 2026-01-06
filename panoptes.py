@@ -1,96 +1,100 @@
 import time
 import requests
-import random
-from bs4 import BeautifulSoup
+import json
 from panteon import Panteon
 
 class Panoptes:
     def __init__(self):
-        self.bot = Panteon("Panoptes Real")
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
+        self.bot = Panteon("Panoptes Finance")
 
-    def escanear_mercadolibre(self, producto):
-        """Busca un producto en MercadoLibre y extrae el primer resultado orgánico."""
-        self.bot.log(f"🔎 Buscando '{producto}' en MercadoLibre...")
-        
-        url_busqueda = f"https://listado.mercadolibre.cl/{producto.replace(' ', '-')}_NoIndex_True"
+    def obtener_crypto(self):
+        """Consulta precios de criptomonedas en CoinGecko."""
         try:
-            resp = requests.get(url_busqueda, headers=self.headers, timeout=10)
-            if resp.status_code != 200:
-                self.bot.log(f"⚠️ Error {resp.status_code} al acceder a {url_busqueda}", "WARN")
-                return
-
-            soup = BeautifulSoup(resp.text, 'html.parser')
+            # Bitcoin y Ethereum (USD y CLP)
+            url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd,clp"
+            resp = requests.get(url, timeout=10)
             
-            # Selectores típicos de ML (pueden cambiar, pero estos son comunes)
-            items = soup.find_all('li', class_='ui-search-layout__item')
-            if not items:
-                # Intentar layout de grilla
-                items = soup.find_all('div', class_='ui-search-result__wrapper')
-
-            if items:
-                # Tomamos el primero para dar el dato "mejor posicionado"
-                item = items[0]
+            if resp.status_code == 200:
+                data = resp.json()
                 
-                # Extraer Título (Intentar varios selectores)
-                titulo_tag = item.find('h2', class_='ui-search-item__title')
-                titulo = titulo_tag.text.strip() if titulo_tag else "Producto desconocido"
+                # Bitcoin
+                btc_usd = data.get('bitcoin', {}).get('usd', 0)
+                self.guardar_dato("Bitcoin (USD)", btc_usd, "CoinGecko")
                 
-                # Extraer Precio
-                precio_tag = item.find('span', class_='andes-money-amount__fraction')
-                precio_texto = precio_tag.text.replace('.', '') if precio_tag else "0"
-                try:
-                    precio = int(precio_texto)
-                except:
-                    precio = 0
+                # Ethereum
+                eth_usd = data.get('ethereum', {}).get('usd', 0)
+                self.guardar_dato("Ethereum (USD)", eth_usd, "CoinGecko")
 
-                # Extraer Link
-                link_tag = item.find('a', class_='ui-search-link')
-                link = link_tag['href'] if link_tag else "#"
-
-                # Guardar en Hestia
-                self.guardar_hallazgo(titulo, precio, "MercadoLibre", link)
+                # Solana
+                sol_usd = data.get('solana', {}).get('usd', 0)
+                self.guardar_dato("Solana (USD)", sol_usd, "CoinGecko")
+                
+                self.bot.log(f"🪙 Crypto Update: BTC ${btc_usd} | ETH ${eth_usd}", "INFO")
             else:
-                self.bot.log(f"⚠️ No encontré resultados para '{producto}'", "WARN")
+                self.bot.log(f"⚠️ CoinGecko Error: {resp.status_code}", "WARN")
 
         except Exception as e:
-            self.bot.log(f"❌ Error scraping {producto}: {e}", "ERROR")
+            self.bot.log(f"❌ Error Crypto: {e}", "ERROR")
 
-    def guardar_hallazgo(self, producto, precio, tienda, url):
-        # Usamos conexión directa del SDK si es local
+    def obtener_fiat_chile(self):
+        """Consulta indicadores económicos de Chile (Dólar, UF)."""
+        try:
+            url = "https://mindicador.cl/api"
+            resp = requests.get(url, timeout=10)
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                
+                # Dólar Observado
+                dolar = data.get('dolar', {}).get('valor', 0)
+                self.guardar_dato("Dólar (CLP)", dolar, "Banco Central")
+                
+                # UF
+                uf = data.get('uf', {}).get('valor', 0)
+                self.guardar_dato("UF (CLP)", uf, "Banco Central")
+                
+                self.bot.log(f"🇨🇱 Chile Update: Dólar ${dolar} | UF ${uf}", "INFO")
+            else:
+                self.bot.log(f"⚠️ Mindiicador Error: {resp.status_code}", "WARN")
+
+        except Exception as e:
+            self.bot.log(f"❌ Error Fiat: {e}", "ERROR")
+
+    def guardar_dato(self, nombre, valor, fuente):
+        """Guarda el indicador en la tabla de ofertas (reciclada)."""
         if self.bot.modo == "LOCAL":
-            with self.bot._conectar_db() as conn:
-                conn.execute('''
-                    INSERT INTO ofertas (producto, precio, tienda, url, fecha_captura)
-                    VALUES (?, ?, ?, ?, datetime("now"))
-                ''', (producto, precio, tienda, url))
-                self.bot.log(f"✅ Hallazgo: {producto} a ${precio}")
+            try:
+                with self.bot._conectar_db() as conn:
+                    # En lugar de guardar histórico infinito, actualizamos el valor si es el mismo día
+                    # O simplemente insertamos logs.
+                    # Para el dashboard actual, insertamos como "Oferta"
+                    
+                    # 1. Limpiar dato anterior del mismo tipo hoy (para no llenar DB)
+                    conn.execute("DELETE FROM ofertas WHERE producto = ? AND fecha_captura > datetime('now','-1 hour')", (nombre,))
+                    
+                    # 2. Insertar nuevo
+                    conn.execute('''
+                        INSERT INTO ofertas (producto, precio, tienda, url, fecha_captura)
+                        VALUES (?, ?, ?, ?, datetime("now"))
+                    ''', (nombre, int(valor), fuente, "#",)) # Guardamos como entero por ahora
+            except Exception as e:
+                self.bot.log(f"❌ DB Error: {e}", "ERROR")
         else:
-            # TODO: Endpoint /api/oferta futura
-            self.bot.log(f"📡 (Simulado Remoto) {producto}: ${precio}")
+            self.bot.log(f"📡 Mock: {nombre} -> {valor}")
 
     def patrullar(self):
-        """Ciclo principal de búsqueda."""
-        self.bot.log("👁️ Panoptes v2 (Real) iniciado. Cargando objetivos...")
+        self.bot.log("💎 Panoptes Financial v1.0 Iniciado.")
         
         while True:
-            # 1. Leer Configuración Dinámica desde Hestia
-            objetivos = self.bot.get_config("panoptes_targets")
-            if not objetivos:
-                objetivos = ["Bitcoin", "Laptop"] # Fallback
+            # 1. Criptos
+            self.obtener_crypto()
             
-            # 2. Escanear cada objetivo
-            for obj in objetivos:
-                self.escanear_mercadolibre(obj)
-                # Pausa humana para no ser baneado
-                time.sleep(random.randint(5, 15)) 
+            # 2. Fiat Chile
+            self.obtener_fiat_chile()
             
-            # 3. Descansar
-            descanso = 1200 # 20 minutos
-            self.bot.log(f"💤 Ronda terminada. Durmiendo {descanso/60:.0f} min.")
-            time.sleep(descanso)
+            # Descanso largo (los mercados no cambian tan rápido como para spammear)
+            # 5 minutos
+            time.sleep(300)
 
 if __name__ == "__main__":
     ojo = Panoptes()

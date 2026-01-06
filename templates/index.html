@@ -258,6 +258,19 @@
             </div>
         </div>
 
+        <!-- Ranking de Bots -->
+        <div class="glass-panel" style="margin-bottom: 2rem; padding: 1.5rem;">
+            <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">🏆 Ranking de Productividad</div>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                {% for bot in resumen_bots %}
+                <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; flex: 1; min-width: 140px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">{{ bot[0] }}</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: var(--success);">{{ bot[1] }} <span style="font-size: 0.8rem; color: var(--text-muted);">{{ bot[2] }}</span></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
             <!-- Panoptes Data -->
             <div>
