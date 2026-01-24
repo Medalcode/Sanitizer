@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data_sanitizer"
+version = "0.1.0"
+description = "Pequeña librería para validar y limpiar datos (fechas, textos, slugs)."
+authors = [ { name = "medalcode" } ]
+requires-python = ">=3.8"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0"
