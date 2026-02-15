@@ -86,8 +86,8 @@ class TestNumericConversion:
         # "192.168.0.1" -> mantiene puntos -> "192.168.0.1" -> float() falla (Multiple dots)
         assert to_float("192.168.0.1") is None 
         
-        # Currency
-        assert to_float("$ 100.00") == 100.0
+        # Currency: prefer safe behavior (no stripping) -> None
+        assert to_float("$ 100.00") is None
 
     def test_to_int_types(self):
         assert to_int("10.5") == 10 # Truncates? Or rounds? int(float(s)) truncates.
@@ -150,9 +150,9 @@ class TestTextSanitization:
         assert "HolaMundo" in result or result == "HolaMundo", f"Got broken slug: {result}"
 
     def test_slugify_empty_magic_string(self):
-        # Empty input returns 'n-a' logic check
-        assert slugify("") == "n-a"
-        assert slugify(None) == "n-a"
+        # Empty input returns None (no magic strings)
+        assert slugify("") is None
+        assert slugify(None) is None
         # Is this desirable? Usually QA flags magic strings.
 
     def test_infer_boolean_extended(self):

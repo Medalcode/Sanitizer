@@ -52,3 +52,9 @@ def is_strong_password(
     return (upper >= require_upper and 
             digits >= require_digit and 
             special >= require_special)
+
+
+# Re-exportes para compatibilidad y conveniencia
+# Algunos tests y usuarios esperan importar funciones de conversión
+# desde el módulo `data_sanitizer.validation`.
+from .converters import to_int, to_float, infer_boolean  # noqa: F401

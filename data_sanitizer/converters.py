@@ -8,11 +8,13 @@ Filosofía:
 """
 from __future__ import annotations
 from typing import Any, Optional, Union
+import re
 
 def to_int(
     value: Any, 
     /, *, 
     default: Optional[int] = None, 
+    fallback: Optional[int] = None,
     strict: bool = False
 ) -> Optional[int]:
     """Convierte value a int de forma segura.
@@ -22,6 +24,10 @@ def to_int(
         default: Valor a retornar si falla la conversión.
         strict: Si True, lanza ValueError/TypeError en lugar de retornar default.
     """
+    # Compatibilidad: `fallback` es alias histórico de `default`
+    if fallback is not None and default is None:
+        default = fallback
+
     if value is None:
         return default
     
@@ -40,6 +46,7 @@ def to_float(
     value: Any, 
     /, *, 
     default: Optional[float] = None, 
+    fallback: Optional[float] = None,
     decimal_separator: str = ".",
     strict: bool = False
 ) -> Optional[float]:
@@ -51,24 +58,42 @@ def to_float(
         decimal_separator: Caracter usado como decimal ('.' o ',').
         strict: Si True, lanza excepción en fallo.
     """
+    # Compatibilidad `fallback` alias de `default`
+    if fallback is not None and default is None:
+        default = fallback
+
     if value is None:
         return default
 
     if isinstance(value, (int, float)):
         return float(value)
-        
+
     s = str(value).strip()
-    
-    # Limpieza determinista basada en el separador decimal esperado
-    if decimal_separator == ",":
-        # Formato Europeo: 1.234,56 -> 1234.56
-        # Eliminamos puntos (miles) y reemplazamos coma por punto
-        s = s.replace(".", "").replace(",", ".")
+    # Normalizar espacios internos
+    s = s.replace(' ', '')
+
+    # Si hay caracteres fuera del conjunto permitido (dígitos, punto, coma, signo),
+    # consideramos que no es un número limpio (p. ej. incluye símbolo de moneda)
+    if re.search(r"[^0-9\.,\-+]", s):
+        if strict:
+            raise ValueError(f"Valor no numérico: {value}")
+        return default
+
+    # Heurística para resolver ambigüedades entre punto y coma:
+    if "," in s and "." in s:
+        # Ej: "1.234,56" -> '.' aparece antes de ',' => estilo europeo
+        if s.find('.') < s.find(','):
+            s = s.replace('.', '').replace(',', '.')
+        else:
+            # Ej: "1,234.56" -> estilo US
+            s = s.replace(',', '')
+    elif "," in s and "." not in s:
+        # Solo coma -> tratar coma como decimal
+        s = s.replace(',', '.')
     else:
-        # Formato US: 1,234.56 -> 1234.56
-        # Eliminamos comas (miles)
-        s = s.replace(",", "")
-        
+        # Solo punto o ninguno -> eliminar comas (separadores de miles)
+        s = s.replace(',', '')
+
     try:
         return float(s)
     except (ValueError, TypeError):

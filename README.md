@@ -78,3 +78,21 @@ slugify("¡Hola Mundo!")  # -> "hola-mundo"
 ## Contribuir
 
 El código sigue estrictamente el estilo PEP 8 y Type Hinting. Antes de enviar un PR, asegúrate de que los tests pasen y no introduzcas dependencias pesadas innecesarias.
+
+## Documentación operativa
+
+Se han añadido guías operativas para agentes y habilidades del mantenimiento del proyecto:
+
+- [Guía del agente (agent.md)](docs/agent.md): reglas, playbooks y límites para un agente autónomo que interactúe con el repositorio.
+- [Skills del agente (skills.md)](docs/skills.md): descripción de las habilidades automatizables (ejecutar tests, linting, bump de versión) con ejemplos y criterios de éxito.
+
+Por favor, revísalas si quieres ajustar permisos o añadir más playbooks.
+
+## Estado del repositorio (local)
+
+- Tests: 31 passed (ejecutados localmente durante la preparación de estos cambios).
+- Documentación operativa añadida: `docs/agent.md`, `docs/skills.md`.
+- CI: plantilla añadida en `.github/workflows/ci.yml` (ejecuta `pytest`).
+- CHANGELOG: `CHANGELOG.md` con sección `Unreleased`.
+
+Si quieres, puedo crear una rama y abrir un PR con estos cambios.

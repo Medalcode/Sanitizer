@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: data_sanitizer
+Version: 0.1.0
+Summary: Pequeña librería para validar y limpiar datos (fechas, textos, slugs).
+Author: medalcode
+Requires-Python: >=3.8
