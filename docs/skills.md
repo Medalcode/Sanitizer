@@ -3,34 +3,22 @@
 Resumen
 - Este documento describe las habilidades (skills) que el agente puede ejecutar para mantener y mejorar el proyecto. Cada skill incluye propósito, entradas, salidas, ejemplos de comandos y criterios de éxito.
 
-Skill: RunTests
-- Objetivo: Ejecutar la suite de pruebas y resumir resultados.
-- Entrada: commit/branch a evaluar.
-- Comando ejemplo: `pytest --maxfail=5 -q` y `python tests/run_tests.py`.
-- Salida esperada: número de tests, lista de fallos con stack traces, categoría del fallo.
-- Criterio de éxito: 0 tests fallidos. En caso contrario, crear issue o PR con fix mínimo y test que asegure la corrección.
+Skill: QualityAudit (Paramétrica)
+- Objetivo: Ejecutar verificaciones de calidad (tests, linting, tipos) según parámetros.
+- Parámetros: 
+  - `tools`: Lista de herramientas a correr (`["pytest", "ruff", "mypy", "black"]`).
+  - `fix`: Booleano para aplicar correcciones automáticas (p.ej. `ruff --fix`, `black`).
+- Comando ejemplo: `pytest` / `ruff . --fix` / `mypy --strict`.
+- Criterio de éxito: 0 errores detectados por las herramientas activadas.
 
-Skill: LintAndType
-- Objetivo: Verificar estilo y tipos, proponer fixes automáticos cuando sea seguro.
-- Entrada: código modificado en PR/branch.
-- Comandos ejemplo: `black --check .`, `ruff . --fix`, `mypy --strict` (si está configurado).
-- Salida: lista de problemas, dif con fixes sugeridos.
-- Criterio de éxito: formateo y ruff pasan; errores de mypy documentados o resueltos.
+Skill: ProjectDynamics (Paramétrica)
+- Objetivo: Gestionar metadatos, documentación y automatización de CI.
+- Parámetros:
+  - `action`: `bump_version`, `update_changelog`, `generate_docs`, `init_ci`.
+  - `scope`: `patch`, `minor`, `major`.
+- Procedimiento: Actualizar `data_sanitizer/_version.py`, `CHANGELOG.md` o generar `.github/workflows/ci.yml`.
+- Criterio de éxito: Archivos actualizados correctamente según el `scope` y persistencia de cambios en git.
 
-Skill: BumpVersionAndChangelog
-- Objetivo: Aplicar bump de versión para parches/fixes y añadir changelog mínimo.
-- Entrada: PR con arreglo de bug/feature menor.
-- Procedimiento: actualizar `data_sanitizer/_version.py`, actualizar `pyproject.toml` si aplica, añadir sección en `CHANGELOG.md` o en la descripción del PR.
-- Criterio de éxito: versión coherente (SemVer), tests pasan, PR documentado.
-
-Skill: CreateReleaseCI (plantilla)
-- Objetivo: Proponer un workflow de GitHub Actions para tests + publish (publish requiere aprobación humana).
-- Output: archivo sugerido `.github/workflows/ci.yml` con jobs: test, lint, coverage-report.
-
-Skill: AddDocs
-- Objetivo: Generar o actualizar documentación en `docs/` con ejemplos de uso.
-- Entrada: cambios en API o ejemplos de usuario.
-- Ejemplo: añadir ejemplos de limpieza de CSV, normalización de fechas locales.
 
 - Referencias a tests y símbolos
 - `standardize_date` — [data_sanitizer/dates.py](data_sanitizer/dates.py) — ver [tests/test_standardize_date.py](tests/test_standardize_date.py).

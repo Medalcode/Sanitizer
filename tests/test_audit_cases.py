@@ -1,16 +1,18 @@
 
 import pytest
 import datetime
-from data_sanitizer.validation import (
+from data_sanitizer import (
     is_email,
     is_url,
     to_float,
     to_int,
     infer_boolean,
     is_strong_password,
+    standardize_date,
+    slugify,
+    remove_accents,
+    normalize_whitespace,
 )
-from data_sanitizer.dates import standardize_date
-from data_sanitizer.text import slugify, remove_accents, normalize_whitespace
 
 # ==========================================
 # 1. Tests de Validación (Validation vs Transformation)

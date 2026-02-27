@@ -69,12 +69,21 @@ Funciones complejas que aplican reglas de negocio para devolver un formato canó
 - **Argumentos:** Los inputs principales deben llamarse `value` para validar/convertir, o nombres específicos (`text`, `date_input`) si el dominio es restringido.
 - **Depuración:** No usar `print`. Si se requiere logging, inyectar un logger o usar el módulo `logging` estándar de forma silenciosa.
 
-## 4. Próximos Pasos (Refactorización)
-
-El código actual viola este contrato en:
-
-- `slugify`: Devuelve `"n-a"`.
-- `to_float/to_int`: API inconsistente para fallbacks.
-- `validation.py`: Mezcla validadores con convertidores.
-
-Se requiere una refactorización para alinear la librería con este documento.
+## 4. Hoja de Ruta (Roadmap)
+ 
+### Milestone 0.3.0: Robustez y Localización
+- [ ] **Soporte de Localización en `to_float`**:
+  - Parámtero `locale` para formatos específicos (ej. "1.234,00 €").
+  - Gestión mejorada de símbolos de moneda.
+- [ ] **Mejoras en Fechas**:
+  - Soporte de zonas horarias (`pytz` / `zoneinfo`).
+  - Retorno opcional de objetos `datetime` nativos.
+ 
+### Milestone 0.4.0: Ecosistema y DX
+- [ ] **Manejo de Excepciones**: Modo `strict=True` para levantar `SanitizerError`.
+- [ ] **Decoradores**: `@sanitize_arguments` para limpieza automática de inputs en funciones de usuario.
+- [ ] **Pandas Integration**: Helpers para `df.apply()` eficientes.
+ 
+### Milestone 1.0.0: Release Major
+- [ ] Auditoría de seguridad final (XSS/SQL injection checks).
+- [ ] Congelación de API y SemVer estricto.

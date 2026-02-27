@@ -8,25 +8,19 @@ Alcance y límites
 - Prohibido sin revisión humana: modificaciones a la API pública, cambios de diseño en `API_DESIGN.md` o `ARCHITECTURE.md`, y publicaciones a PyPI.
 
 Comandos permitidos (ejemplos)
-- Ejecutar tests: `pytest` y `python tests/run_tests.py`.
+- Ejecutar tests: `pytest`.
 - Lint/type (si se incorporan): `black --check`, `ruff --fix`, `mypy --strict`.
 
-Playbooks principales
-- RunTests
-  - Acción: ejecutar `pytest` y `python tests/run_tests.py`.
-  - Resultado: resumen de fallos; si todos pasan, anotar en PR/issue.
-  - En fallos: clasificar (regresión, flaky, infra). Para regresiones claras, proponer PR con fix mínimo y test que reproduzca.
+Playbook: Agente Generalista (Operaciones de Ciclo de Vida)
+- Auditoría Técnica:
+  - Acción: Ejecutar `Skill: QualityAudit` con `tools=["pytest", "ruff", "mypy", "black"]`.
+  - Objetivo: Detectar regresiones y problemas de estilo. Prioridad a fixes automáticos (`fix=True`).
+- Gestión de Versiones y Docs:
+  - Acción: Ejecutar `Skill: ProjectDynamics` para `bump_version`, `update_changelog` o `generate_docs`.
+  - Política: Seguir SemVer estrictamente. Parches automáticos permitidos.
+- Contribución Segura:
+  - Acción: Crear PR incluyendo descripción de cambios, resultados de auditoría y notas de versión.
 
-- LintAndType
-  - Acción: ejecutar linters y `mypy` si están configurados.
-  - Resultado: aplicar fixes automáticos cuando sea seguro (`black`, `isort`, `ruff`); crear issue para problemas de tipado complejos.
-
-- BumpVersionAndChangelog
-  - Política: aplicar SemVer. Cambios en API pública requieren bump mayor y revisión humana.
-  - Acciones automáticas permitidas: bump de parche y añadir entrada de changelog en el cuerpo del PR.
-
-- CreatePR
-  - Checklist: tests pasan, descripción clara del cambio, referencia a test que fallaba, changelog/nota de versión, y etiquetas propuestas.
 
 Referencias clave
 - API pública y versión: [data_sanitizer/__init__.py](data_sanitizer/__init__.py)

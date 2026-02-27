@@ -20,79 +20,43 @@ pip install data-sanitizer
 ```
 
 ## Guía Rápida
-
-### Validación (Predicados booleanos)
-
-Responden con seguridad si un dato cumple un criterio, manejando `None` y tipos incorrectos por ti.
-
+ 
+Todos los métodos son accesibles directamente desde el paquete raíz, gracias a la nueva arquitectura unificada.
+ 
 ```python
-from data_sanitizer.validation import is_email, is_url
-
-is_email("usuario@empresa.com")  # -> True
-is_email("no es un email")       # -> False
-is_email(None)                   # -> False
-is_email(12345)                  # -> False (Seguro, no lanza error)
-```
-
-### Transformación (Conversión de tipos)
-
-Convierte inputs sucios a tipos nativos.
-
-```python
-from data_sanitizer.validation import to_int, to_float, infer_boolean
-
-# Números sucios
-to_int("123")           # -> 123
-to_int("Approx 100", fallback=0)  # -> 0
-
-# Decimales ambiguos
-to_float("1,200.50")    # -> 1200.5
-to_float(None)          # -> None
-
-# Inferencias lógicas
-infer_boolean("Yes")    # -> True
-infer_boolean("Off")    # -> False
-```
-
-### Normalización (Fechas y Texto)
-
-Estandariza formatos para guardar en base de datos.
-
-```python
-from data_sanitizer.dates import standardize_date
-from data_sanitizer.text import slugify
-
-# Fechas caóticas -> ISO 8601
-standardize_date("31/01/2023")  # -> "2023-01-31"
-standardize_date("Jan 5th 2022") # -> "2022-01-05"
-
-# Slugs para URLs
-slugify("¡Hola Mundo!")  # -> "hola-mundo"
+import data_sanitizer as ds
+ 
+# 1. Validación (Siempre devuelven bool)
+ds.is_email("usuario@empresa.com")  # -> True
+ds.is_strong_password("Aa1!aaaa")   # -> True
+ 
+# 2. Conversión (Casting seguro)
+ds.to_int("42.9")                   # -> 42
+ds.to_float("1.200,50", decimal_separator=",") # -> 1200.5
+ds.infer_boolean("Yes")             # -> True
+ 
+# 3. Normalización (ISO y ASCII)
+ds.standardize_date("31/01/2023")   # -> "2023-01-31"
+ds.slugify("¡Hola Mundo!")          # -> "hola-mundo"
 ```
 
 ## Filosofía: Qué NO es esta librería
 
-- **No es Pydantic/Marshmallow**: No define esquemas ni modelos de objetos completos. Es una colección de utilidades de bajo nivel para limpiar el dato _antes_ de pasarlo a tu validador de esquema.
-- **No es Pandas**: No está optimizada para limpiar millones de filas vectorialmente (aunque puede usarse en un `apply`). Está pensada para lógica de negocio y ETLs de complejidad media.
+- **No es Pydantic/Marshmallow**: No define esquemas ni modelos. Limpia el dato _antes_ del esquema.
+- **No es Pandas**: No está vectorizada (aunque funciona perfecto en `df.apply`).
 
-## Contribuir
+## Arquitectura y Mantenimiento
 
-El código sigue estrictamente el estilo PEP 8 y Type Hinting. Antes de enviar un PR, asegúrate de que los tests pasen y no introduzcas dependencias pesadas innecesarias.
+Este proyecto sigue una arquitectura **"Lean"** (mínima y eficiente):
+- **Motor Central**: Toda la lógica reside en `data_sanitizer/engine.py`.
+- **Agente de IA**: El mantenimiento está optimizado para Agentes mediante [agent.md](docs/agent.md) y [skills.md](docs/skills.md).
+- **Roadmap**: Consulta el plan de futuro en [ARCHITECTURE.md](ARCHITECTURE.md#4-hoja-de-ruta-roadmap).
 
-## Documentación operativa
+## Estado del Proyecto
 
-Se han añadido guías operativas para agentes y habilidades del mantenimiento del proyecto:
+- **Versión**: 0.2.0 (Refactorización Lean completada).
+- **Calidad**: Suite de tests unificada en `tests/`.
+- **CI**: GitHub Actions configurado en `.github/workflows/ci.yml`.
 
-- [Guía del agente (agent.md)](docs/agent.md): reglas, playbooks y límites para un agente autónomo que interactúe con el repositorio.
-- [Skills del agente (skills.md)](docs/skills.md): descripción de las habilidades automatizables (ejecutar tests, linting, bump de versión) con ejemplos y criterios de éxito.
-
-Por favor, revísalas si quieres ajustar permisos o añadir más playbooks.
-
-## Estado del repositorio (local)
-
-- Tests: 31 passed (ejecutados localmente durante la preparación de estos cambios).
-- Documentación operativa añadida: `docs/agent.md`, `docs/skills.md`.
-- CI: plantilla añadida en `.github/workflows/ci.yml` (ejecuta `pytest`).
-- CHANGELOG: `CHANGELOG.md` con sección `Unreleased`.
-
-Si quieres, puedo crear una rama y abrir un PR con estos cambios.
+---
+*Desarrollado con foco en la robustez y la simplicidad.*
